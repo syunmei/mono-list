@@ -3,7 +3,7 @@
 @if(items.nonEmpty) {
     <div class="row">
     @for(i <- items.indices) {
-        @defining(items(i)){ item =>
+        @defining(items(i)) { item: Item =>
             <div class="item">
                 <div class="col-md-3 col-sm-4 col-xs-12">
                     <div class="panel panel-default">

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-mysql -uroot < create-mysql-db.sql
+mysql -uroot -p < create-mysql-db.sql
