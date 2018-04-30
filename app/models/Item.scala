@@ -17,11 +17,12 @@ case class Item(id: Option[Long],
                 createAt: ZonedDateTime,
                 updateAt: ZonedDateTime,
                 users: Seq[User] = Seq.empty, // 追加
-                wantUsers: Seq[User] = Seq.empty) // 追加
+                wantUsers: Seq[User] = Seq.empty, // 追加
+                haveUsers: Seq[User] = Seq.empty) // 追加
 
 object Item extends SkinnyCRUDMapper[Item] {
 
-  lazy val allAssociations: CRUDFeatureWithId[Long, Item] = joins(allUsersRef, wantUsersRef)
+  lazy val allAssociations: CRUDFeatureWithId[Long, Item] = joins(allUsersRef, wantUsersRef, haveUsersRef)
 
   val allUsersRef: HasManyAssociation[Item] = hasManyThrough[User](
     through = ItemUser,
@@ -37,6 +38,16 @@ object Item extends SkinnyCRUDMapper[Item] {
       sqls.eq(itemUser.userId, user.id).and.eq(itemUser.`type`, WantHaveType.Want.toString),
     merge = (item, wantUsers) => item.copy(wantUsers = wantUsers)
   )
+
+  val haveUsersRef: HasManyAssociation[Item] = hasManyThrough[ItemUser, User](
+    through = ItemUser -> ItemUser.defaultAlias,
+    throughOn = (item: Alias[Item], itemUser: Alias[ItemUser]) => sqls.eq(item.id, itemUser.itemId),
+    many = User -> User.createAlias("i_in_u_have"),
+    on = (itemUser: Alias[ItemUser], user: Alias[User]) =>
+      sqls.eq(itemUser.userId, user.id).and.eq(itemUser.`type`, WantHaveType.Have.toString),
+    merge = (item, haveUsers) => item.copy(haveUsers = haveUsers)
+  )
+
   override def tableName: String = "items"
 
   override def defaultAlias: Alias[Item] = createAlias("i")
@@ -52,7 +63,7 @@ object Item extends SkinnyCRUDMapper[Item] {
   )
 
   override def extract(rs: WrappedResultSet, n: ResultName[Item]): Item =
-    autoConstruct(rs, n, "users", "wantUsers")
+    autoConstruct(rs, n, "users", "wantUsers", "haveUsers")
 
   def create(item: Item)(implicit session: DBSession = AutoSession): Long =
     createWithAttributes(toNamedValues(item): _*)
